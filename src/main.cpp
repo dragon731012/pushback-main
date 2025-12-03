@@ -1,6 +1,66 @@
 #include "main.h"
+#include "lemlib/api.hpp"
 
+pros::MotorGroup left_motors({13, 9, 11}); 
+pros::MotorGroup right_motors({14, 10, 12});
 
+lemlib::Drivetrain drivetrain(&left_motors, 
+                              &right_motors, 
+                              12.5, 
+                              lemlib::Omniwheel::NEW_275, 
+                              450, 
+                              2 
+);
+
+pros::Imu imu(19);
+
+pros::Rotation hr1(5);
+pros::Rotation vr2(6);
+// horizontal tracking wheel
+lemlib::TrackingWheel horizontal_tracking_wheel(&hr1, lemlib::Omniwheel::NEW_275, -5.75);
+// vertical tracking wheel
+lemlib::TrackingWheel vertical_tracking_wheel(&vr2, lemlib::Omniwheel::NEW_275, -2.5);
+
+// odometry settings
+lemlib::OdomSensors sensors(&vertical_tracking_wheel, 
+                            nullptr, 
+                            &horizontal_tracking_wheel, 
+                            nullptr, 
+                            &imu
+);
+
+// lateral PID controller
+lemlib::ControllerSettings lateral_controller(10, // proportional gain (kP)
+                                              0, // integral gain (kI)
+                                              3, // derivative gain (kD)
+                                              3, // anti windup
+                                              1, // small error range, in inches
+                                              100, // small error range timeout, in milliseconds
+                                              3, // large error range, in inches
+                                              500, // large error range timeout, in milliseconds
+                                              20 // maximum acceleration (slew)
+);
+
+// angular PID controller
+lemlib::ControllerSettings angular_controller(2, // proportional gain (kP)
+                                              0, // integral gain (kI)
+                                              10, // derivative gain (kD)
+                                              3, // anti windup
+                                              1, // small error range, in degrees
+                                              100, // small error range timeout, in milliseconds
+                                              3, // large error range, in degrees
+                                              500, // large error range timeout, in milliseconds
+                                              0 // maximum acceleration (slew)
+);
+
+// create the chassis
+lemlib::Chassis chassis(drivetrain, // drivetrain settings
+                        lateral_controller, // lateral PID settings
+                        angular_controller, // angular PID settings
+                        sensors // odometry sensors
+);
+
+pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
 /**
  * A callback function for LLEMU's center button.
@@ -76,21 +136,15 @@ void autonomous() {}
  * task, not resume it from where it left off.
  */
 void opcontrol() {
-	pros::Controller master(pros::E_CONTROLLER_MASTER);
-	pros::MotorGroup left_mg({1, -2, 3});    // Creates a motor group with forwards ports 1 & 3 and reversed port 2
-	pros::MotorGroup right_mg({-4, 5, -6});  // Creates a motor group with forwards port 5 and reversed ports 4 & 6
-
+    left_motors.set_brake_mode(MOTOR_BRAKE_BRAKE);
+    right_motors.set_brake_mode(MOTOR_BRAKE_BRAKE);
 
 	while (true) {
-		pros::lcd::print(0, "%d %d %d", (pros::lcd::read_buttons() & LCD_BTN_LEFT) >> 2,
-		                 (pros::lcd::read_buttons() & LCD_BTN_CENTER) >> 1,
-		                 (pros::lcd::read_buttons() & LCD_BTN_RIGHT) >> 0);  // Prints status of the emulated screen LCDs
+        int LeftX = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X);
+        int LeftY = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
 
-		// Arcade control scheme
-		int dir = master.get_analog(ANALOG_LEFT_Y);    // Gets amount forward/backward from left joystick
-		int turn = master.get_analog(ANALOG_RIGHT_X);  // Gets the turn left/right from right joystick
-		left_mg.move(dir - turn);                      // Sets left motor voltage
-		right_mg.move(dir + turn);                     // Sets right motor voltage
-		pros::delay(20);                               // Run for 20 ms then update
-	}
+        chassis.arcade(-LeftX, -LeftY);
+
+        pros::delay(25);
+    }
 }
