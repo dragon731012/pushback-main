@@ -91,7 +91,7 @@ void autonomous() {
 void store(int val) {
     intake1.move_velocity(1*val);
     intake2.move_velocity(100);
-    intake3.move_velocity(100);
+    intake3.move_velocity(20);
 }
 
 void score(int val) {
