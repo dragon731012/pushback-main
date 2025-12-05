@@ -55,13 +55,15 @@ lemlib::Chassis chassis(drivetrain,
                         sensors 
 );
 
+int current = 0;
+
 //motors
-pros::Motor intake1(15, pros::E_MOTOR_GEARSET_18, false); 
-pros::Motor intake2(16, pros::E_MOTOR_GEARSET_18, true); 
-pros::Motor intake3(17, pros::E_MOTOR_GEARSET_18, false); 
+pros::Motor intake1(15);
+pros::Motor intake2(-16);
+pros::Motor intake3(17);
 
 //pnumatics
-pros::ADIDigitalOut tongue(1); 
+pros::adi::DigitalOut tongue(1);
 bool tongueExtended = false;
 
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
@@ -89,15 +91,19 @@ void autonomous() {
 }
 
 void store(int val) {
-    intake1.move_velocity(1*val);
-    intake2.move_velocity(100);
-    intake3.move_velocity(20);
+    intake1.move_velocity(6*val);
+    intake2.move_velocity(6*val);
+    if (val > 1 || val < -1) {
+        intake3.move_velocity(-20);
+    } else {
+        intake3.move_velocity(0);
+    }
 }
 
 void score(int val) {
-    intake1.move_velocity(1*val);
-    intake2.move_velocity(-1*val);
-    intake3.move_velocity(-1*val);
+    intake1.move_velocity(6*val);
+    intake2.move_velocity(-6*val);
+    intake3.move_velocity(-6*val);
 }
 
 void opcontrol() {
@@ -107,14 +113,22 @@ void opcontrol() {
 	while (true) {
         //setting modes
         int val = (controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y)*100)/127;
-        if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
+        if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
+            current=0;
+        } else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
+            current=1;
+        }
+
+        if (current==0){
             store(val);
-        } else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
+        }
+
+        if (current==1){
             score(val);
         }
 
         //using pnumatics
-        if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L2)) {
+        if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L2)) {
             useTongue();
         }
 
