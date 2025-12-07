@@ -65,6 +65,8 @@ pros::Motor intake3(17);
 //pnumatics
 pros::adi::DigitalOut tongue(1);
 bool tongueExtended = false;
+pros::adi::DigitalOut wing(2);
+bool wingExtended = false;
 
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
@@ -80,6 +82,11 @@ void disabled() {
 void useTongue() {
     tongueExtended=!tongueExtended;
     tongue.set_value(tongueExtended);
+}
+
+void useWing() {
+    wingExtended=!wingExtended;
+    wing.set_value(wingExtended);
 }
 
 void competition_initialize() {
@@ -128,8 +135,10 @@ void opcontrol() {
         }
 
         //using pnumatics
-        if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L2)) {
+        if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L1)) {
             useTongue();
+        } else if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L2)) {
+            useWing();
         }
 
         //driving
