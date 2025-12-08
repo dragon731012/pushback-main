@@ -101,7 +101,7 @@ void store(int val) {
     intake1.move_velocity(6*val);
     intake2.move_velocity(6*val);
     if (val > 1 || val < -1) {
-        intake3.move_velocity(-20);
+        intake3.move_velocity(0/*-20*/);
     } else {
         intake3.move_velocity(0);
     }
