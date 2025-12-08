@@ -94,7 +94,7 @@ void competition_initialize() {
 }
 
 void autonomous() {
-
+//minecraft is cool
 }
 
 void store(int val) {
