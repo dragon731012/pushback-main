@@ -13,12 +13,12 @@ lemlib::Drivetrain drivetrain(&left_motors,
                               2 
 );
 
-pros::Imu imu(19);
+pros::Imu imu(6);
 
-pros::Rotation hr1(5);
-pros::Rotation vr2(6);
-lemlib::TrackingWheel horizontal_tracking_wheel(&hr1, lemlib::Omniwheel::NEW_275, -5.75);
-lemlib::TrackingWheel vertical_tracking_wheel(&vr2, lemlib::Omniwheel::NEW_275, -2.5);
+pros::Rotation hr1(7);
+pros::Rotation vr2(8);
+lemlib::TrackingWheel horizontal_tracking_wheel(&hr1, lemlib::Omniwheel::NEW_275, 0.2);
+lemlib::TrackingWheel vertical_tracking_wheel(&vr2, lemlib::Omniwheel::NEW_275, 0);
 
 lemlib::OdomSensors sensors(&vertical_tracking_wheel, 
                             nullptr, 
@@ -135,9 +135,9 @@ void opcontrol() {
         }
 
         //using pnumatics
-        if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L1)) {
+        if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L2)) {
             useTongue();
-        } else if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L2)) {
+        } else if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L1)) {
             useWing();
         }
 
