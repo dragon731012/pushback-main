@@ -2,12 +2,13 @@
 #include "lemlib/api.hpp"
 #include "pros/adi.hpp"
 
-pros::MotorGroup left_motors({13, 9, 11}); 
+// This ensures Forward = Forward, and Turn = Clockwise
+pros::MotorGroup left_motors({-13, -9, -11});
 pros::MotorGroup right_motors({14, 10, 12});
 
 lemlib::Drivetrain drivetrain(&left_motors, 
                               &right_motors, 
-                              12.5, 
+                              12.35, 
                               lemlib::Omniwheel::NEW_275, 
                               450, 
                               2 
@@ -15,10 +16,13 @@ lemlib::Drivetrain drivetrain(&left_motors,
 
 pros::Imu imu(6);
 
+// --- TRACKING WHEELS ---
+// Ensure hr1 is Positive (7) to match the turning fix from earlier
 pros::Rotation hr1(7);
 pros::Rotation vr2(8);
-lemlib::TrackingWheel horizontal_tracking_wheel(&hr1, lemlib::Omniwheel::NEW_275, 0.2);
-lemlib::TrackingWheel vertical_tracking_wheel(&vr2, lemlib::Omniwheel::NEW_275, 0);
+
+lemlib::TrackingWheel horizontal_tracking_wheel(&hr1, 2.0, 0.5);
+lemlib::TrackingWheel vertical_tracking_wheel(&vr2, 2.0, 0);
 
 lemlib::OdomSensors sensors(&vertical_tracking_wheel, 
                             nullptr, 
@@ -27,33 +31,33 @@ lemlib::OdomSensors sensors(&vertical_tracking_wheel,
                             &imu
 );
 
-lemlib::ControllerSettings lateral_controller(10, // proportional gain (kP)
-                                              0, // integral gain (kI)
-                                              3, // derivative gain (kD)
-                                              3, // anti windup
-                                              1, // small error range, in inches
-                                              100, // small error range timeout, in milliseconds
-                                              3, // large error range, in inches
-                                              500, // large error range timeout, in milliseconds
-                                              20 // maximum acceleration (slew)
+// LATERAL PID (Driving Straight)
+lemlib::ControllerSettings lateral_controller(
+    10,   // kP
+    0,    // kI
+    3,    // kD
+    3,    // anti windup
+    1,    // small error range
+    100,  // small error timeout
+    3,    // large error range
+    500,  // large error timeout
+    20    // slew
 );
 
-lemlib::ControllerSettings angular_controller(2, // proportional gain (kP)
-                                              0, // integral gain (kI)
-                                              10, // derivative gain (kD)
-                                              3, // anti windup
-                                              1, // small error range, in degrees
-                                              100, // small error range timeout, in milliseconds
-                                              3, // large error range, in degrees
-                                              500, // large error range timeout, in milliseconds
-                                              0 // maximum acceleration (slew)
+// ANGULAR PID (Turning) - Your Tuned Values
+lemlib::ControllerSettings angular_controller(
+    4.5, // kP
+    0,   // kI
+    35,  // kD
+    3,   // anti windup
+    1,   // small error range
+    100, // small error timeout
+    3,   // large error range
+    500, // large error timeout
+    0    // slew
 );
 
-lemlib::Chassis chassis(drivetrain, 
-                        lateral_controller,
-                        angular_controller, 
-                        sensors 
-);
+lemlib::Chassis chassis(drivetrain, lateral_controller, angular_controller, sensors);
 
 int current = 0;
 
@@ -73,6 +77,8 @@ pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
 void initialize() {
 	pros::lcd::initialize();
+
+    chassis.calibrate(); 
 }
 
 void disabled() {
@@ -89,14 +95,6 @@ void useWing() {
     wing.set_value(wingExtended);
 }
 
-void competition_initialize() {
-
-}
-
-void autonomous() {
-//minecraft is cool
-}
-
 void store(int val) {
     intake1.move_velocity(6*val);
     intake2.move_velocity(6*val);
@@ -111,6 +109,45 @@ void score(int val) {
     intake1.move_velocity(6*val);
     intake2.move_velocity(-6*val);
     intake3.move_velocity(-6*val);
+}
+
+void competition_initialize() {
+
+}
+
+void autonomous() {
+    chassis.setPose(0,0,0);
+
+    //move out from the start
+    chassis.moveToPoint(0,22,1000,{.maxSpeed=100});
+
+    //move to the balls and pick them up
+    store(-100);
+    chassis.moveToPoint(-6,40,3000,{.maxSpeed=40});
+
+    //go in front of matchloader
+    chassis.moveToPoint(-27,20,1500,{.maxSpeed=100});
+    store(0);
+
+    //turn towards the matchloader
+    chassis.turnToHeading(180,1000,{.maxSpeed=40});
+    store(-100);
+    useTongue();
+
+    //use the matchloader
+    chassis.moveToPoint(-28,0,1600,{.maxSpeed=60});
+
+    //move towards the goal
+    chassis.moveToPoint(-27, 40,1000,{.forwards = false,.maxSpeed=80});
+    store(0);
+
+    pros::delay(1000);
+    score(-100);
+    useTongue();
+    pros::delay(2000);
+    score(0);
+    chassis.moveToPoint(-28, 30,1000,{.maxSpeed=60});
+    chassis.moveToPoint(-28, 40,1000,{.forwards = false,.maxSpeed=100});
 }
 
 void opcontrol() {
@@ -145,7 +182,7 @@ void opcontrol() {
         int LeftX = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X);
         int LeftY = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
 
-        chassis.arcade(-LeftX, -LeftY);
+        chassis.arcade(LeftX, LeftY);
 
         pros::delay(25);
     }
